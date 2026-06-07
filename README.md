@@ -228,8 +228,7 @@ The final dataset was mapped into an interactive executive dashboard layout. Che
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).  
-Dataset inspired by a collaboration with Warby Parker's Data Science team. 
+This project dataset was inspired by a collaboration with Warby Parker's Data Science team. 
 
 ---
 
