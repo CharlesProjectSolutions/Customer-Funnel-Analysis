@@ -70,6 +70,7 @@ The analysis draws from **four log files**, each linked by a shared `UserId`:
 | `Home_Try_On` | Users who enrolled in the try-on program | `UserId`, `NumberOfPairs`, `Address` |
 | `Purchase` | Users who completed a purchase | `UserId`, `ProductId`, `Style`, `ModelName`, `Color`, `Price` |
 
+
 ---
 
 ## 🗃️ Data Architecture & Ingestion
