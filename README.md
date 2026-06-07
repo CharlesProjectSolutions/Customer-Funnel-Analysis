@@ -110,198 +110,115 @@ The customer journey is modeled as a **linear conversion funnel** across four st
 ```
 [Style Quiz Response] → [Quiz Completion] → [Home Try-On] → [Purchase]
 ```
-
-Each stage is treated as a **binary event** per user: either the user progressed to that stage or they did not. Users who appear in a downstream table but not an upstream one are excluded from the funnel (data integrity check).
-
-The funnel is constructed via **LEFT JOINs** anchored to the `quiz` table, enabling a complete view of all users — including those who did not convert at each stage. `CASE WHEN` flags are used to create boolean indicators for downstream-stage presence.
-
-```
-quiz (anchor)
-  └── LEFT JOIN home_try_on  ON quiz.user_id = home_try_on.user_id
-        └── LEFT JOIN purchase  ON home_try_on.user_id = purchase.user_id
-```
-
 ---
 
-## 🛠️ SQL Methodology
-
-### 1. Quiz Drop-Off Analysis
-
-Counts responses per question to measure where engagement falls off.
+## 🛠️ Pivoted Analytical SQL Modeling
+Because live relational database connections (MS SQL Server) restrict Tableau's native user-interface pivot capabilities, the data layer was reshaped at the database tier using a **vertical `UNION ALL` stacking framework**. This structures wide columns into a uniform text dimension (`Funnel_Stage`) and a single numeric measure (`Stage_Users`), preventing heavy calculations inside the BI engine.
 
 ```sql
-SELECT
-  question,
-  COUNT(DISTINCT user_id) AS num_responses
-FROM survey
-GROUP BY question
-ORDER BY question;
-```
-
-### 2. Home Try-On Funnel — Boolean Flag Creation
-
-Builds a consolidated funnel table with stage-presence flags and A/B test grouping.
-
-```sql
-SELECT
-  q.user_id,
-  h.user_id IS NOT NULL        AS is_home_try_on,
-  h.number_of_pairs            AS num_pairs,
-  p.user_id IS NOT NULL        AS is_purchase
-FROM quiz q
-LEFT JOIN home_try_on h
-  ON q.user_id = h.user_id
-LEFT JOIN purchase p
-  ON q.user_id = p.user_id;
-```
-
-### 3. Funnel Conversion Rates
-
-Aggregates stage counts and calculates conversion percentages.
-
-```sql
-WITH funnel AS (
-  SELECT
-    q.user_id,
-    h.user_id IS NOT NULL AS is_home_try_on,
-    p.user_id IS NOT NULL AS is_purchase
-  FROM quiz q
-  LEFT JOIN home_try_on h ON q.user_id = h.user_id
-  LEFT JOIN purchase    p ON q.user_id = p.user_id
+WITH Global_Funnel_Base AS (
+    SELECT 
+        (SELECT COUNT(DISTINCT UserId) FROM Quiz) AS Total_Quiz_Users,
+        (SELECT COUNT(DISTINCT UserId) FROM Home_Try_On) AS Total_TryOn_Users,
+        (SELECT COUNT(DISTINCT UserId) FROM Purchase) AS Total_Purchase_Users
+),
+AB_Variant_Summaries AS (
+    SELECT 
+        h.NumberOfPairs,
+        COUNT(DISTINCT h.UserId) AS Variant_Total_Users,
+        COUNT(DISTINCT p.UserId) AS Variant_Total_Purchases,
+        CAST(CAST((COUNT(DISTINCT p.UserId) * 100.0) / COUNT(DISTINCT h.UserId) AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Variant_Conversion_Rate
+    FROM Home_Try_On h
+    LEFT JOIN Purchase p ON h.UserId = p.UserId
+    GROUP BY h.NumberOfPairs
+),
+Flat_User_Data AS (
+    SELECT 
+        q.UserId, q.Style AS Quiz_Preferred_Style, q.Fit AS Quiz_Preferred_Fit,
+        COALESCE(h.NumberOfPairs, 'Did Not Reach Try-On') AS AB_Test_Variant,
+        p.ProductId, p.ModelName AS Purchased_Model, p.Price AS Purchase_Amount,
+        g.Total_Quiz_Users, g.Total_TryOn_Users, g.Total_Purchase_Users,
+        '100.0%' AS Funnel_Quiz_Started_Conversion,
+        CAST(CAST((g.Total_TryOn_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Funnel_TryOn_Conversion,
+        CAST(CAST((g.Total_Purchase_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Funnel_Purchased_Conversion,
+        ab.Variant_Total_Users AS AB_Variant_Users,
+        ab.Variant_Total_Purchases AS AB_Variant_Purchases,
+        ab.Variant_Conversion_Rate AS AB_Variant_Conversion_Percent
+    FROM Quiz q
+    CROSS JOIN Global_Funnel_Base g
+    LEFT JOIN Home_Try_On h ON q.UserId = h.UserId
+    LEFT JOIN Purchase p    ON q.UserId = p.UserId
+    LEFT JOIN AB_Variant_Summaries ab ON h.NumberOfPairs = ab.NumberOfPairs
 )
-SELECT
-  COUNT(*)                                    AS total_quiz,
-  SUM(is_home_try_on)                         AS total_try_on,
-  SUM(is_purchase)                            AS total_purchases,
-  ROUND(100.0 * SUM(is_home_try_on)
-              / COUNT(*), 1)                  AS quiz_to_tryon_pct,
-  ROUND(100.0 * SUM(is_purchase)
-              / SUM(is_home_try_on), 1)       AS tryon_to_purchase_pct,
-  ROUND(100.0 * SUM(is_purchase)
-              / COUNT(*), 1)                  AS overall_conversion_pct
-FROM funnel;
-```
-
-### 4. A/B Test — Purchase Rate by Try-On Pair Count
-
-Breaks down purchase rates between the 3-pair and 5-pair groups.
-
-```sql
-WITH funnel AS (
-  SELECT
-    q.user_id,
-    h.number_of_pairs,
-    p.user_id IS NOT NULL AS is_purchase
-  FROM quiz q
-  LEFT JOIN home_try_on h ON q.user_id = h.user_id
-  LEFT JOIN purchase    p ON q.user_id = p.user_id
-  WHERE h.user_id IS NOT NULL
-)
-SELECT
-  number_of_pairs,
-  COUNT(*)                                        AS total_users,
-  SUM(is_purchase)                                AS purchases,
-  ROUND(100.0 * SUM(is_purchase) / COUNT(*), 1)  AS purchase_rate_pct
-FROM funnel
-GROUP BY number_of_pairs
-ORDER BY number_of_pairs;
-```
-
-### 5. Most Popular Quiz Outcomes & Purchase Styles
-
-Surfaces top-performing frame styles and colors to inform inventory and merchandising decisions.
-
-```sql
--- Top purchased styles
-SELECT
-  style,
-  model_name,
-  color,
-  COUNT(*) AS total_purchases
-FROM purchase
-GROUP BY style, model_name, color
-ORDER BY total_purchases DESC
-LIMIT 10;
+-- Stacking metric dimensions vertically to optimize dashboard execution speeds
+SELECT 
+    UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
+    AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
+    '1 - Quiz Started' AS Funnel_Stage, Total_Quiz_Users AS Stage_Users, Funnel_Quiz_Started_Conversion AS Stage_Conversion
+FROM Flat_User_Data
+UNION ALL
+SELECT 
+    UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
+    AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
+    '2 - Try-On Ordered' AS Funnel_Stage, Total_TryOn_Users AS Stage_Users, Funnel_TryOn_Conversion AS Stage_Conversion
+FROM Flat_User_Data
+UNION ALL
+SELECT 
+    UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
+    AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
+    '3 - Purchased' AS Funnel_Stage, Total_Purchase_Users AS Stage_Users, Funnel_Purchased_Conversion AS Stage_Conversion
+FROM Flat_User_Data;
 ```
 
 ---
 
 ## 📊 Key Performance Indicators (KPIs)
 
-| KPI | Definition |
-|---|---|
-| **Quiz Completion Rate** | % of users who answered all 5 quiz questions |
-| **Quiz-to-Try-On Rate** | % of quiz completers who enrolled in home try-on |
-| **Try-On-to-Purchase Rate** | % of try-on participants who made a purchase |
-| **Overall Conversion Rate** | % of quiz completers who ultimately purchased |
-| **3-Pair Purchase Rate** | Purchase rate among users in the 3-pair test group |
-| **5-Pair Purchase Rate** | Purchase rate among users in the 5-pair test group |
-| **A/B Lift** | Absolute and relative difference in purchase rates between groups |
-| **Question Drop-Off Rate** | % decrease in responses from one quiz question to the next |
+
+| Metric | Measured Value | Business Formulation |
+| :--- | :--- | :--- |
+| **Quiz Starters** | **1,000** | Baseline volume of unique customer profiles entering the acquisition funnel. |
+| **Quiz-to-Try-On Rate** | **75.0%** | Conversion pull-through from onboarding setup to ordering physical product frames. |
+| **Try-On-to-Purchase Rate**| **66.0%** | Conversion efficiency of users finalizing a checkout after box delivery. |
+| **Overall Funnel Conversion**| **49.5%** | Total percentage of quiz starters successfully tracked to checkout (`495 / 1000`). |
+| **Total Funnel Drop-off** | **50.5%** | Aggregate loss from baseline starting pool down to final step (`(1000 - 495) / 1000`). |
 
 ---
 
-## 📈 Dashboard Design
+## 📈 Dashboard Design & Live Metrics
 
-The analysis is designed to support a BI dashboard with the following panels:
+The final dataset was mapped into an interactive executive dashboard layout. By deploying Level of Detail (LOD) expressions, overall funnel conversion remains dynamic and reactive to categorical side-filters:
 
-### Panel 1 — Quiz Engagement Funnel
-- **Chart type:** Horizontal bar chart (response count per question)
-- **Purpose:** Visually identify the sharpest drop-off point in the quiz
-- **Filters:** None (all users, all questions)
+```tableau
+{ FIXED : MIN(IF [Question] = '3 - Purchased' THEN [Stage_Users] END) }
+/
+{ FIXED : MIN(IF [Question] = '1 - Quiz Started' THEN [Stage_Users] END) }
+```
 
-### Panel 2 — Full Purchase Funnel
-- **Chart type:** Funnel / waterfall chart
-- **Stages:** Quiz Completed → Try-On Enrolled → Purchase Made
-- **Metrics:** Count per stage + conversion % between stages
-
-### Panel 3 — A/B Test Comparison
-- **Chart type:** Side-by-side bar chart or KPI tiles
-- **Groups:** 3-pair vs. 5-pair try-on participants
-- **Metric:** Purchase rate (%) per group with statistical context
-
-### Panel 4 — Purchase Breakdown
-- **Chart type:** Treemap or ranked bar chart
-- **Dimensions:** Style, model name, color
-- **Metric:** Count of purchases per category
-
-### Panel 5 — Summary KPI Row
-- Tiles for: Total Quiz Users · Total Try-On Users · Total Purchases · Overall Conversion Rate
+### Executive Performance View
+<!-- Replace the line below with your actual image path or GitHub URL asset once uploaded -->
+![Customer Funnel Performance Dashboard](https://githubusercontent.com)
 
 ---
 
-## 💡 Insights & Recommendations
+## 🧪 A/B Test Evaluation
 
-### Quiz Funnel
+*   **Hypothesis:** Expanding home sample options from 3 pairs to 5 pairs boosts overall checkouts by decreasing choice limitations and increasing user brand engagement.
+*   **The Verdict:** The 5-pair variant out-performed the baseline control group, driving an absolute purchase rate surge from **53.0% to 79.2%**. This accounts for a staggering **+49.4% relative conversion lift**.
 
-| Finding | Recommendation |
-|---|---|
-| Response count drops significantly at **Question 3** (shapes) and even more sharply at **Question 5** (last eye exam) | Reorder or streamline the quiz — move more personal or friction-heavy questions later or make them optional |
-| The eye exam question has the lowest completion rate — it may feel invasive early in the customer journey | A/B test removing or repositioning this question; add micro-copy to explain why it's relevant |
-| Early questions (style preference, fit) retain engagement better | Lead with high-engagement questions to establish momentum before harder ones |
 
-### Home Try-On Funnel
-
-| Finding | Recommendation |
-|---|---|
-| The **quiz → try-on** conversion rate represents the largest single drop-off in the funnel | Improve post-quiz CTA design, reduce friction in try-on enrollment, or add social proof at the transition point |
-| Purchase rates are measurably higher among **5-pair** participants | Scale the 5-pair offering or use it as a premium/default program option for undecided customers |
-| Overall end-to-end conversion (quiz → purchase) is low but improvable | Each upstream improvement compounds — even 5–10% gains at quiz completion translate to meaningful revenue growth |
+| Experimental Cohort | Sample Users | Final Purchases | Stage-Specific Conversion Rate |
+| :--- | :--- | :--- | :--- |
+| **3 Pairs (Control)** | 379 | 201 | 53.0% |
+| **5 Pairs (Variant)** | 371 | 294 | **79.2% (Statistically Significant Win)** |
 
 ---
 
-## 🧪 A/B Test Results
+## 💡 Strategic Business Insights
 
-**Hypothesis:** Providing users with 5 try-on pairs (vs. 3) increases purchase likelihood by reducing choice paralysis and increasing perceived value.
-
-| Group | Try-On Users | Purchases | Purchase Rate |
-|---|---|---|---|
-| 3 Pairs | ~201 | — | Lower |
-| 5 Pairs | ~294 | — | **Higher** |
-
-> **Result:** Users in the **5-pair group** purchased at a notably higher rate, supporting the hypothesis. The additional pairs appear to increase decision confidence without overwhelming users.
-
-> **Recommendation:** Adopt 5 pairs as the default try-on offering, or gate it as a loyalty/first-time-buyer benefit to maximize impact.
+1. **Scale the Winner:** The 5-pair sample variant demonstrates massive conversion superiority over the 3-pair baseline. The business should systematically phase out smaller sample kits to optimize conversion performance.
+2. **Address Try-On Leaks:** While 75% of users successfully migrate to ordering a try-on box, a **34.0% drop-off** occurs between box arrival and final purchase. Implementing automated push-notifications or email follow-ups during the physical trial window represents a high-value recovery opportunity.
+3. **Inventory Alignment:** Merchandising teams should prioritize stock allocations around top-performing models like **Eugene Narrow** (116 sales) and **Dawes** (107 sales), which represent the largest revenue drivers in the current cycle.
 
 ---
 
