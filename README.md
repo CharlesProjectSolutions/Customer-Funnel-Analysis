@@ -14,7 +14,7 @@
 
 - [Project Overview](#-project-overview)
 - [Business Problem](#-business-problem)
-- [Dataset Description](#dataset-description)
+- [Dataset Description](#-dataset-description)
 - [Data Architecture & Ingestion](#-data-architecture--ingestion)
 - [Pivoted Analytical SQL Modeling](#-pivoted-analytical-sql-modeling)
 - [Key Performance Indicators (KPIs)](#-key-performance-indicators-kpis)
@@ -186,7 +186,7 @@ FROM Flat_User_Data;
 
 The final dataset was mapped into an interactive executive dashboard layout:
 
-![Customer Funnel Performance Dashboard](<img width="971" height="888" alt="Customer Funnel Dashboard" src="https://github.com/user-attachments/assets/bd011f95-03a2-4a35-b2b1-b820df60b9ea" />)
+![Customer Funnel Performance Dashboard](<Customer Funnel Dashboard.png />)
 
 ---
 
@@ -215,12 +215,13 @@ The final dataset was mapped into an interactive executive dashboard layout:
 
 | Tool | Purpose |
 |---|---|
-| **SQL (SQLite / PostgreSQL)** | Data querying, funnel construction, aggregation |
+| **SQL (SQLite / PostgreSQL / SQL Saver / DBeaver)** | Data querying, funnel construction, aggregation |
 | **LEFT JOIN + CASE WHEN** | Funnel logic and boolean flag creation |
 | **CTEs (Common Table Expressions)** | Readable, modular multi-step queries |
-| **Tableau / Power BI / Sigma** | Dashboard visualization (optional) |
+| **Tableau / Power BI / Sigma** | Dashboard visualization |
 | **DB Microsoft SQL Saver** | Local SQL execution environment |
-| **GitHub** | Version control and project documentation |
+| **Warehouse Cloud Platforms** | Redshift, Snowflake, Azure, Databricks, BigQuery, dbt, and Teradata to store transformed Analytics & AL ready Data |
+| **GitHub / Confluence** | Version control and project documentation |
 
 ---
 
