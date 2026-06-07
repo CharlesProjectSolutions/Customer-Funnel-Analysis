@@ -1,10 +1,17 @@
-# 🕶️ Warby Parker Funnel Analysis
+# 🕶️ E-Commerce Marketing Funnel Analysis & A/B Test Pipeline
 
 ![SQL](https://img.shields.io/badge/Language-SQL-blue?style=flat-square)
 ![BI](https://img.shields.io/badge/Domain-Business%20Intelligence-orange?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen?style=flat-square)
 
-> **A full-funnel SQL analysis of Warby Parker's style quiz and home try-on customer journey — measuring conversion rates, diagnosing drop-off points, and evaluating an A/B test on try-on pair volume.**
+> **A full-funnel SQL analysis of Warby Parker's style quiz and home try-on customer journey; measuring conversion rates, diagnosing drop-off points, and evaluating an A/B test on try-on pair volume.**
+
+![SQL Engine](https://shields.io)
+![BI Platform](https://shields.io)
+![Status](https://shields.io)
+
+> **An end-to-end analytics engineering pipeline utilizing a Load-Then-Link staging design to ingest volatile web logs, compute advanced window metrics, and serve a denormalized, vertically pivoted data layer optimized for dashboard development**
+
 
 ---
 
@@ -80,6 +87,39 @@ The analysis draws from **four relational tables**, each linked by a shared `use
 > **Note:** Total respondents = ~500 users. The home try-on experiment was split 50/50 between the 3-pair and 5-pair groups.
 
 ---
+
+---
+
+## 📋 Table of Contents
+- [Project Overview](#-project-overview)
+- [Business Problem](#-business-problem)
+- [Data Architecture & Ingestion](#-data-architecture--ingestion)
+- [Pivoted Analytical SQL Modeling](#-pivoted-analytical-sql-modeling)
+- [Key Performance Indicators (KPIs)](#-key-performance-indicators-kpis)
+- [Dashboard Design & Live Metrics](#-dashboard-design--live-metrics)
+- [A/B Test Evaluation](#-ab-test-evaluation)
+- [Strategic Business Insights](#-strategic-business-insights)
+
+---
+
+## 📌 Project Overview
+Warby Parker operates a high-touch direct-to-consumer eyewear funnel starting with a digital style quiz, progressing to a physical Home Try-On sampler box, and ending in a product purchase. 
+
+This project establishes a resilient analytics pipeline that unifies siloed transactional tables into an optimized framework. It provides full transparency into stage-level drop-offs and quantifies the economic value of an active product variant test: **offering 3-pair vs. 5-pair home sampling kits**.
+
+---
+
+## 🧩 Business Problem
+Guidance through digital frameworks involves compounding drop-off risks. Stakeholders required automated answers to three core visibility blockers:
+1. **Funnel Friction points:** Where do users experience drop-off across the primary journey milestones?
+2. **The Try-On Experiment:** Does expanding kit options from 3 to 5 pairs reduce purchase friction, or does it trigger choice paralysis?
+3. **Product Inventory Demands:** Which specific frame models dominate checkouts, and how do early quiz selections map to high-value purchases?
+
+---
+
+## 🗃️ Data Architecture & Ingestion
+The raw application logs consisted of four disconnected schemas linked by an alphanumeric `UserId`. To safeguard against data type mismatches (such as string-based booleans `"TRUE"/"FALSE"` or corrupt empty elements), a **two-tier staging design** was implemented.
+
 
 ## 🔀 Funnel Logic
 
