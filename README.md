@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen?style=flat-square)
 
 > **An end-to-end full-funnel analysis of Warby Parker's style quiz and home try-on customer journey; measuring conversion rates, diagnosing drop-off points, and evaluating an A/B test on try-on pair volume.**
-> **Utilizing a Load-Then-Link staging design to ingest volatile web logs, compute window metrics, and serve a denormalized, vertically pivoted data layer optimized for dashboard development**
+> **Utilizing a Load-Then-Link staging design to ingest volatile web logs, compute window metrics, and serve a denormalized, vertically pivoted data layer optimized for [dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/WPCustomerFunnel): development**
 
 
 ---
@@ -262,7 +262,7 @@ FROM Flat_User_Data;
 
 ## 📈 Dashboard Design & Live Metrics
 
-The final dataset was mapped into an interactive executive dashboard layout. Check out the [Tableau Dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/WPCustomerFunnel):
+The final dataset was mapped into an interactive executive dashboard layout.
 
 ![Customer Funnel Performance Dashboard](https://github.com/CharlesProjectSolutions/Customer-Funnel-Analysis/blob/d92e73c6085680e6e2cca5eabf79c16e0845c2dc/Customer%20Funnel%20Dashboard.png)
 
