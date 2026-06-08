@@ -117,30 +117,33 @@ Because live relational database connections (MS SQL Server) restrict Tableau's 
 
 ```sql
 WITH Global_Funnel_Base AS (
+    -- 1. Pre-calculate global baseline numbers for the overall funnel table
     SELECT 
         (SELECT COUNT(DISTINCT UserId) FROM Quiz) AS Total_Quiz_Users,
         (SELECT COUNT(DISTINCT UserId) FROM Home_Try_On) AS Total_TryOn_Users,
         (SELECT COUNT(DISTINCT UserId) FROM Purchase) AS Total_Purchase_Users
 ),
 AB_Variant_Summaries AS (
+    -- 2. Pre-calculate variant-level metrics for the A/B test table
     SELECT 
         h.NumberOfPairs,
         COUNT(DISTINCT h.UserId) AS Variant_Total_Users,
         COUNT(DISTINCT p.UserId) AS Variant_Total_Purchases,
-        CAST(CAST((COUNT(DISTINCT p.UserId) * 100.0) / COUNT(DISTINCT h.UserId) AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Variant_Conversion_Rate
+        CAST((COUNT(DISTINCT p.UserId) * 100.0) / COUNT(DISTINCT h.UserId) AS DECIMAL(10,1)) AS Variant_Conversion_Rate
     FROM Home_Try_On h
     LEFT JOIN Purchase p ON h.UserId = p.UserId
     GROUP BY h.NumberOfPairs
 ),
 Flat_User_Data AS (
+    -- 3. Your original query kept completely intact as a baseline
     SELECT 
         q.UserId, q.Style AS Quiz_Preferred_Style, q.Fit AS Quiz_Preferred_Fit,
         COALESCE(h.NumberOfPairs, 'Did Not Reach Try-On') AS AB_Test_Variant,
         p.ProductId, p.ModelName AS Purchased_Model, p.Price AS Purchase_Amount,
         g.Total_Quiz_Users, g.Total_TryOn_Users, g.Total_Purchase_Users,
-        '100.0%' AS Funnel_Quiz_Started_Conversion,
-        CAST(CAST((g.Total_TryOn_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Funnel_TryOn_Conversion,
-        CAST(CAST((g.Total_Purchase_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS VARCHAR(10)) + '%' AS Funnel_Purchased_Conversion,
+        100.0 AS Funnel_Quiz_Started_Conversion,
+        CAST((g.Total_TryOn_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS Funnel_TryOn_Conversion,
+        CAST((g.Total_Purchase_Users * 100.0) / g.Total_Quiz_Users AS DECIMAL(10,1)) AS Funnel_Purchased_Conversion,
         ab.Variant_Total_Users AS AB_Variant_Users,
         ab.Variant_Total_Purchases AS AB_Variant_Purchases,
         ab.Variant_Conversion_Rate AS AB_Variant_Conversion_Percent
@@ -149,20 +152,24 @@ Flat_User_Data AS (
     LEFT JOIN Home_Try_On h ON q.UserId = h.UserId
     LEFT JOIN Purchase p    ON q.UserId = p.UserId
     LEFT JOIN AB_Variant_Summaries ab ON h.NumberOfPairs = ab.NumberOfPairs
-)
--- Stacking metric dimensions vertically to optimize dashboard execution speeds
+) 
+-- 4. Apply UNION ALL to stack the metrics vertically into a native Tableau Dimension
 SELECT 
     UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
     AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
     '1 - Quiz Started' AS Funnel_Stage, Total_Quiz_Users AS Stage_Users, Funnel_Quiz_Started_Conversion AS Stage_Conversion
 FROM Flat_User_Data
+
 UNION ALL
+
 SELECT 
     UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
     AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
     '2 - Try-On Ordered' AS Funnel_Stage, Total_TryOn_Users AS Stage_Users, Funnel_TryOn_Conversion AS Stage_Conversion
 FROM Flat_User_Data
+
 UNION ALL
+
 SELECT 
     UserId, Quiz_Preferred_Style, Quiz_Preferred_Fit, AB_Test_Variant, ProductId, Purchased_Model, Purchase_Amount,
     AB_Variant_Users, AB_Variant_Purchases, AB_Variant_Conversion_Percent,
