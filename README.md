@@ -5,7 +5,7 @@
 ![Status](https://img.shields.io/badge/Status-Complete-brightgreen?style=flat-square)
 
 > **An end-to-end full-funnel analysis of Warby Parker's style quiz and home try-on customer journey; measuring conversion rates, diagnosing drop-off points, and evaluating an A/B test on try-on pair volume.**
-> **Utilizing a Load-Then-Link staging design to ingest volatile web logs, compute window metrics, and serve a denormalized, vertically pivoted data layer optimized for [dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/WPCustomerFunnel): development**
+> **Utilizing a Load-Then-Link staging design to ingest volatile web logs, compute window metrics, and serve a denormalized, vertically pivoted data layer optimized for [dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/WPCustomerFunnel) development**
 
 
 ---
