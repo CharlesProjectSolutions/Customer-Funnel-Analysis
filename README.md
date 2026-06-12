@@ -75,7 +75,7 @@ The analysis draws from **four log files**, each linked by a shared `UserId`:
 
 ---
 
-## 🗃️ Data Architecture & Ingestion
+## Ingestion & Data Architecture 
 The raw application logs consisted of four disconnected schemas linked by an alphanumeric `UserId`. To safeguard against data type mismatches (such as string-based booleans `"TRUE"/"FALSE"` or corrupt empty elements), a **two-tier staging design** was implemented.
 
 ### Ingestion & Cleaning Script (Example: Purchase Log Ingestion)
