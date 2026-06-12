@@ -13,6 +13,7 @@ This [Customer Funnel Performance dashboard](https://public.tableau.com/app/prof
 
 ## 📋 Table of Contents
 
+- [Executive Summary](#-executive-summary)
 - [Project Overview](#-project-overview)
 - [Business Problem](#-business-problem)
 - [Dataset Description](#-dataset-description)
