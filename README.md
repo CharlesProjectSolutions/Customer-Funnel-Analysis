@@ -7,23 +7,21 @@
 ---
 
 ### 🧭 Executive Summary
-This [Customer Funnel Performance dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/CustomerFunnelPerformance?publish=yes) visualizes Warby Parker’s customer journey from quiz engagement through Home Try‑On to purchase, revealing stage‑level conversion performance and experiment outcomes.  
-The analysis identifies a **34% drop‑off between Home Try‑On and Purchase**, spotlighting a key opportunity to improve post–try‑on engagement, product confidence, and checkout CTAs.  
-The A/B test shows that offering **5 pairs instead of 3 drives a +49.4% lift in purchase conversion**, providing clear evidence to guide product and marketing strategy.  
-Together, these insights demonstrate how data storytelling and BI design can translate analytics into measurable business impact.
+This [Customer Funnel Performance dashboard](https://public.tableau.com/app/profile/charles3440/viz/CustomerFunnelPerformance/CustomerFunnelPerformance?publish=yes) visualizes Warby Parker’s customer journey from quiz engagement through Home Try‑On to purchase, revealing stage‑level conversion performance and experiment outcomes. The analysis identifies a **34% drop‑off between Home Try‑On and Purchase**, spotlighting a key opportunity to improve post–try‑on engagement, product confidence, and checkout CTAs. The A/B test shows that offering **5 pairs instead of 3 drives a +49.4% lift in purchase conversion**, providing clear evidence to guide product and marketing strategy. 
 
 ---
 
-## 📑 Table of Contents
-- [Project Overview](#project-overview)
-- [Business Problem](#business-problem)
-- [Dataset Description](#dataset-description)
-- [Data Architecture & Ingestion](#data-architecture--ingestion)
-- [Pivoted Analytical SQL Modeling](#pivoted-analytical-sql-modeling)
-- [Key Performance Indicators (KPIs)](#key-performance-indicators-kpis)
-- [Dashboard Design & Live Metrics](#dashboard-design--live-metrics)
-- [A/B Test Evaluation](#ab-test-evaluation)
-- [Strategic Business Insights](#strategic-business-insights)
+## 📋 Table of Contents
+
+- [Project Overview](#-project-overview)
+- [Business Problem](#-business-problem)
+- [Dataset Description](#-dataset-description)
+- [Data Architecture & Ingestion](#-data-architecture--ingestion)
+- [Pivoted Analytical SQL Modeling](#-pivoted-analytical-sql-modeling)
+- [Key Performance Indicators (KPIs)](#-key-performance-indicators-kpis)
+- [Dashboard Design & Live Metrics](#-dashboard-design--live-metrics)
+- [A/B Test Evaluation](#-ab-test-evaluation)
+- [Strategic Business Insights](#-strategic-business-insights)
 
 ---
 
